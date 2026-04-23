@@ -50,7 +50,16 @@ app.use('/api/mailboxes', require('./routes/mailbox'));
 app.use('/api/luckyous', require('./routes/luckyous'));
 
 // ─── Static Web UI ────────────────────────────────────────────────────────────
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Security Headers to prevent Phishing false positives
+app.use((req, res, next) => {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN'); // Prevent being embedded in other sites
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self' data:;");
+    next();
+});
 
 app.get('/luckyousmail', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'luckyousmail.html'));
