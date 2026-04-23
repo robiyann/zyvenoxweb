@@ -63,9 +63,21 @@ async function fetchLuckyousInbox(isRefresh = false) {
         els.fetchBtn.disabled = true;
         els.fetchBtn.style.opacity = '0.8';
         els.fetchBtn.innerHTML = `<span class="material-symbols-outlined text-base animate-spin" style="animation: spin 1s linear infinite;">sync</span> Loading...`;
-    } else {
-        toast('Refreshing inbox...');
     }
+
+    // Show persistent centered loading animation overlay on the list
+    els.emptyState.classList.add('hidden');
+    els.emailList.classList.remove('hidden');
+    els.emailList.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-full min-h-[300px] w-full gap-4 text-indigo-400/80">
+            <svg class="animate-spin" width="50" height="50" viewBox="0 0 24 24" fill="none" style="animation: spin 1s linear infinite;">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.2" stroke-width="4"></circle>
+                <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="4" stroke-linecap="round"></path>
+            </svg>
+            <span class="font-medium animate-pulse mt-2 text-sm tracking-wide">Fetching inbox data...</span>
+            <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+        </div>
+    `;
 
     try {
         const res = await fetch(`/api/luckyous/${token}/mails`);
