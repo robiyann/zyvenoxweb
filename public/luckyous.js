@@ -180,7 +180,16 @@ async function openEmail(id) {
         const date = new Date(email.received_at);
         document.getElementById('detail-date').textContent = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
         
-        const htmlContent = email.body_html || `<pre style="white-space: pre-wrap; font-family: monospace;">${email.body_text || 'No content'}</pre>`;
+        let htmlContent = email.body_html || `<pre style="white-space: pre-wrap; font-family: monospace;">${email.body_text || 'No content'}</pre>`;
+        
+        // Sanitize content to prevent phishing flags
+        if (typeof DOMPurify !== 'undefined') {
+            htmlContent = DOMPurify.sanitize(htmlContent, {
+                FORBID_TAGS: ['form', 'input', 'textarea', 'select', 'button', 'iframe', 'script', 'object', 'embed'],
+                FORBID_ATTR: ['enctype', 'action', 'method']
+            });
+        }
+        
         document.getElementById('detail-iframe').srcdoc = htmlContent;
 
         const btnDel = document.getElementById('detail-delete');
