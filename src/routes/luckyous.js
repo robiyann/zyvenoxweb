@@ -23,4 +23,24 @@ router.get('/:token/mails', async (req, res) => {
     }
 });
 
+router.get('/:token/mails/:message_id', async (req, res) => {
+    try {
+        const { token, message_id } = req.params;
+        const apiUrl = `https://mails.luckyous.com/api/v1/openapi/email/token/${token}/mails/${message_id}`;
+        
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        console.error('[Luckyous Proxy Detail Error]', error);
+        res.status(500).json({ error: error.message || 'Internal Server Error fetching detail from Luckyous API' });
+    }
+});
+
 module.exports = router;

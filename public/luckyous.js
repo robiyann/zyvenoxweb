@@ -127,37 +127,52 @@ function renderEmailList(emails) {
     `).join('');
 }
 
-function openEmail(id) {
+async function openEmail(id) {
     selectedEmailId = id;
     els.detailPanel.classList.remove('hidden');
     
-    // Find email from cache
-    const email = loadedEmails.find(x => x.message_id === id);
-    if(!email) return;
-
-    document.getElementById('detail-subject').textContent = email.subject || '(No Subject)';
-    document.getElementById('detail-from-name').textContent = email.from || '';
-    document.getElementById('detail-from-addr').textContent = '';
-    
-    const date = new Date(email.received_at);
-    document.getElementById('detail-date').textContent = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-    
-    const htmlContent = email.html_body || `<pre style="white-space: pre-wrap; font-family: monospace;">${email.body || 'No content'}</pre>`;
-    document.getElementById('detail-iframe').srcdoc = htmlContent;
-
-    // Remove specific actions unsupported by API
-    const btnDel = document.getElementById('detail-delete');
-    if(btnDel) btnDel.classList.add('hidden'); // Cannot delete on luckyous yet via token
-    
-    const btnCopy = document.getElementById('detail-copy');
-    if(btnCopy) {
-        btnCopy.onclick = () => {
-            navigator.clipboard.writeText(JSON.stringify(email, null, 2));
-            toast('Raw JSON copied to clipboard');
-        };
-    }
+    // reset UI while loading
+    document.getElementById('detail-subject').textContent = "Loading...";
+    document.getElementById('detail-from-name').textContent = "...";
+    document.getElementById('detail-from-addr').textContent = "";
+    document.getElementById('detail-date').textContent = "...";
+    document.getElementById('detail-iframe').srcdoc = `<body style="background:transparent;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#888;">Loading content...</body>`;
 
     renderEmailList(loadedEmails);
+    
+    try {
+        const res = await fetch(`/api/luckyous/${currentToken}/mails/${id}`);
+        const result = await res.json();
+        
+        if(result.code !== 0 || !result.data) {
+            throw new Error(result.message || "Failed to load email details");
+        }
+        
+        const email = result.data;
+
+        document.getElementById('detail-subject').textContent = email.subject || '(No Subject)';
+        document.getElementById('detail-from-name').textContent = email.from || '';
+        document.getElementById('detail-from-addr').textContent = email.to ? `<${email.to}>` : '';
+        
+        const date = new Date(email.received_at);
+        document.getElementById('detail-date').textContent = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+        
+        const htmlContent = email.body_html || `<pre style="white-space: pre-wrap; font-family: monospace;">${email.body_text || 'No content'}</pre>`;
+        document.getElementById('detail-iframe').srcdoc = htmlContent;
+
+        const btnDel = document.getElementById('detail-delete');
+        if(btnDel) btnDel.classList.add('hidden'); // Cannot delete on luckyous yet via token
+        
+        const btnCopy = document.getElementById('detail-copy');
+        if(btnCopy) {
+            btnCopy.onclick = () => {
+                navigator.clipboard.writeText(JSON.stringify(email, null, 2));
+                toast('Raw JSON copied to clipboard');
+            };
+        }
+    } catch(err) {
+        toast('Failed to fetch details: ' + err.message, 'error');
+    }
 }
 
 function closeEmailDetail() {
