@@ -46,10 +46,15 @@ app.use('/api/inbound', require('./routes/inbound'));
 // /api/mailboxes & /api/domains: public - security is the randomness of the address
 app.use('/api/domains', require('./routes/domains'));
 app.use('/api/mailboxes', require('./routes/mailbox'));
+// /api/luckyous: proxy to external luckyous API
+app.use('/api/luckyous', require('./routes/luckyous'));
 
 // ─── Static Web UI ────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+app.get('/luckyousmail', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'luckyousmail.html'));
+});
 // ─── Auto-cleanup hourly ──────────────────────────────────────────────────────
 setInterval(() => {
   try {
