@@ -61,7 +61,8 @@ async function fetchLuckyousInbox(isRefresh = false) {
 
     if(!isRefresh) {
         els.fetchBtn.disabled = true;
-        els.fetchBtn.style.opacity = '0.5';
+        els.fetchBtn.style.opacity = '0.8';
+        els.fetchBtn.innerHTML = `<span class="material-symbols-outlined text-base animate-spin" style="animation: spin 1s linear infinite;">sync</span> Loading...`;
     } else {
         toast('Refreshing inbox...');
     }
@@ -102,6 +103,7 @@ async function fetchLuckyousInbox(isRefresh = false) {
         if(!isRefresh) {
             els.fetchBtn.disabled = false;
             els.fetchBtn.style.opacity = '1';
+            els.fetchBtn.innerHTML = `<span class="material-symbols-outlined text-base">cloud_download</span> Fetch Inbox`;
         }
     }
 }
@@ -136,7 +138,16 @@ async function openEmail(id) {
     document.getElementById('detail-from-name').textContent = "...";
     document.getElementById('detail-from-addr').textContent = "";
     document.getElementById('detail-date').textContent = "...";
-    document.getElementById('detail-iframe').srcdoc = `<body style="background:transparent;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#888;">Loading content...</body>`;
+    document.getElementById('detail-iframe').srcdoc = `
+      <body style="background:transparent;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#6366f1;flex-direction:column;gap:12px;margin:0;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style="animation: spin 1s linear infinite;">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.3" stroke-width="3"></circle>
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+          </svg>
+          <span style="font-size:14px;font-weight:500;">Loading content...</span>
+          <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+      </body>
+    `;
 
     renderEmailList(loadedEmails);
     
