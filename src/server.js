@@ -57,7 +57,10 @@ app.use((req, res, next) => {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN'); // Prevent being embedded in other sites
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https:; img-src 'self' data: https:; connect-src 'self' https:; frame-src 'self' data:;");
+    // Note: Content-Security-Policy is intentionally omitted because it cascades to
+    // the iframe srcdoc, breaking arbitrary email rendering (which requires external
+    // images, inline styles, and fonts from unpredictable domains).
+    // Security is handled by the iframe 'sandbox' attribute blocking scripts.
     next();
 });
 
