@@ -329,16 +329,8 @@ async function openEmail(id) {
         
         let htmlContent = email.body_html || `<pre style="white-space: pre-wrap; font-family: monospace;">${email.body_text || 'No content'}</pre>`;
         
-        // Sanitize content to prevent phishing flags
-        if (typeof DOMPurify !== 'undefined') {
-            htmlContent = DOMPurify.sanitize(htmlContent, {
-                WHOLE_DOCUMENT: true,
-                ADD_TAGS: ['style'], 
-                FORBID_TAGS: ['form', 'input', 'textarea', 'select', 'button', 'iframe', 'script', 'object', 'embed'],
-                FORBID_ATTR: ['enctype', 'action', 'method']
-            });
-        }
-        
+        // NOTE: The iframe is sandboxed (no allow-scripts), so we skip DOMPurify here.
+        // DOMPurify strips <style> tags from email HTML making content invisible.
         document.getElementById('detail-iframe').srcdoc = htmlContent;
 
         // update actions
