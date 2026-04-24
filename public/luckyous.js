@@ -185,6 +185,8 @@ async function openEmail(id) {
         // Sanitize content to prevent phishing flags
         if (typeof DOMPurify !== 'undefined') {
             htmlContent = DOMPurify.sanitize(htmlContent, {
+                WHOLE_DOCUMENT: true,
+                ADD_TAGS: ['style'],
                 FORBID_TAGS: ['form', 'input', 'textarea', 'select', 'button', 'iframe', 'script', 'object', 'embed'],
                 FORBID_ATTR: ['enctype', 'action', 'method']
             });
