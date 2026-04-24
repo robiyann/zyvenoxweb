@@ -66,6 +66,8 @@ router.post('/', async (req, res) => {
     const ttlHours = parseInt(process.env.EMAIL_TTL_HOURS || '24', 10);
     const expiresAt = new Date(now.getTime() + ttlHours * 60 * 60 * 1000);
 
+    console.log(`[Inbound] Parsed email: subj="${parsed.subject}", bodyTextLen=${parsed.text?.length || 0}, bodyHtmlLen=${parsed.html?.length || 0}`);
+
     queries.insertEmail.run({
       id,
       address,
