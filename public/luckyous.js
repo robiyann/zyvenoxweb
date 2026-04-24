@@ -184,6 +184,13 @@ async function openEmail(id) {
         
         // NOTE: The iframe is sandboxed (no allow-scripts), so we skip DOMPurify here.
         // DOMPurify strips <style> tags from email HTML making content invisible.
+        // Inject light-mode override to prevent dark media queries making text invisible.
+        const lightModeOverride = `<style>html,body{color-scheme:light!important;background-color:#fff!important;color:#333!important}</style>`;
+        if (htmlContent.includes('<head>')) {
+            htmlContent = htmlContent.replace('<head>', `<head>${lightModeOverride}`);
+        } else {
+            htmlContent = lightModeOverride + htmlContent;
+        }
         document.getElementById('detail-iframe').srcdoc = htmlContent;
 
         const btnDel = document.getElementById('detail-delete');
