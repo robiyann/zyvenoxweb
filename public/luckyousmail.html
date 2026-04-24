@@ -185,9 +185,9 @@
                     </div>
                 </header>
                 <div class="flex-1 p-4 md:p-6 overflow-hidden flex flex-col relative h-full">    
-                    <div class="flex-1 bg-[#1a1a23] rounded-xl overflow-hidden shadow-inner relative flex mb-4 border border-white/10 text-slate-300">
+                    <div class="flex-1 bg-white rounded-xl overflow-hidden shadow-inner relative block mb-4 border border-white/10 text-slate-800">
                          <!-- Use iframe for isolated HTML rendering -->
-                         <iframe id="detail-iframe" class="w-full h-full border-none" sandbox="allow-popups allow-popups-to-escape-sandbox" srcdoc="<div></div>"></iframe>
+                         <iframe id="detail-iframe" class="absolute inset-0 w-full h-full border-none bg-white" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin" srcdoc="<div></div>"></iframe>
                     </div>
                     <footer class="pt-4 border-t border-white/5 flex items-center justify-between shrink-0 mb-4">
                         <button id="detail-delete" class="text-error border border-error/30 hover:bg-error/10 px-4 py-2 rounded-lg flex items-center gap-2">
