@@ -10,6 +10,19 @@ function isValidDomain(domain) {
   return domains.includes(domain);
 }
 
+// ─── Round-Robin Domain Rotator ──────────────────────────────────────────────
+// Counter in-memory — berputar adil melalui semua domain aktif
+let _rrCounter = 0;
+function getNextDomainRoundRobin() {
+  const domains = queries.getDomains.all().map(d => d.domain);
+  if (!domains || domains.length === 0) throw new Error('No active domains available');
+  const domain = domains[_rrCounter % domains.length];
+  _rrCounter++;
+  if (_rrCounter >= Number.MAX_SAFE_INTEGER) _rrCounter = 0; // reset supaya tidak overflow
+  console.log(`[RR] Domain terpilih: ${domain} (counter: ${_rrCounter}, total: ${domains.length})`);
+  return domain;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 const { generateHumanReadableId } = require('../utils/random');
 
@@ -68,6 +81,31 @@ router.post('/generate', requireApiKey, (req, res) => {
   } catch (err) {
     console.error('Failed to save token:', err);
     res.status(500).json({ error: 'Failed to generate mailbox token' });
+  }
+});
+
+/**
+ * @swagger
+ * /mailboxes/generate/auto:
+ *   post:
+ *     summary: Auto-generate email using round-robin domain rotation
+ *     description: Server picks the next domain in rotation automatically — no domain param needed.
+ *     tags: [Mailboxes]
+ *     responses:
+ *       200:
+ *         description: The generated email address, domain used, and access token
+ */
+router.post('/generate/auto', requireApiKey, (req, res) => {
+  try {
+    const domain = getNextDomainRoundRobin();
+    const prefix = generateHumanReadableId();
+    const address = `${prefix}@${domain}`;
+    const token = generateToken(domain);
+    saveToken(token, address);
+    res.json({ address, token, domain });
+  } catch (err) {
+    console.error('[RR] Failed to auto-generate mailbox:', err);
+    res.status(500).json({ error: err.message || 'Failed to auto-generate mailbox' });
   }
 });
 
