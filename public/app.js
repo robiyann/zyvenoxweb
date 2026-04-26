@@ -75,6 +75,14 @@ function setupEventListeners() {
         }
     });
 
+    // Enter key support for manual submission
+    els.tokenInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const val = e.target.value.trim();
+            if (val) setToken(val);
+        }
+    });
+
     // Copy pill
     els.currentTokenPill.addEventListener('click', () => {
         if (!currentToken) return;
