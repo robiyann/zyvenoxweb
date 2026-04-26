@@ -69,8 +69,8 @@ function setupEventListeners() {
     // Smart Token Detector
     els.tokenInput.addEventListener('input', (e) => {
         const val = e.target.value.trim();
-        // A token looks like domain_hex8 or tok_hex8
-        if (val.includes('_') && val.length >= 10) {
+        // If it looks like a token (at least 8 chars), try to submit it
+        if (val.length >= 8) {
             setToken(val);
         }
     });
