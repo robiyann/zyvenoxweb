@@ -3,6 +3,8 @@ const db = require('./database');
 // Queries
 const queries = {
   getDomains: db.prepare('SELECT domain FROM domains WHERE active = 1'),
+  upsertDomain: db.prepare('INSERT INTO domains (domain, active) VALUES (@domain, 1) ON CONFLICT(domain) DO UPDATE SET active = 1'),
+  deleteDomain: db.prepare('DELETE FROM domains WHERE domain = @domain'),
   
   insertEmail: db.prepare(`
     INSERT INTO emails (
@@ -45,6 +47,20 @@ const queries = {
   
   cleanupExpiredEmails: db.prepare(`
     DELETE FROM emails
+    WHERE expires_at <= @now
+  `),
+
+  insertToken: db.prepare(`
+    INSERT INTO tokens (token, address, created_at, expires_at)
+    VALUES (@token, @address, @created_at, @expires_at)
+  `),
+
+  getAddressByToken: db.prepare(`
+    SELECT address FROM tokens WHERE token = @token AND expires_at > @now
+  `),
+
+  cleanupExpiredTokens: db.prepare(`
+    DELETE FROM tokens 
     WHERE expires_at <= @now
   `)
 };

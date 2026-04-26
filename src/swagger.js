@@ -6,7 +6,16 @@ const options = {
     info: {
       title: 'ZYVENOX API',
       version: '1.0.0',
-      description: 'Temporary email service. Create an inbox and read emails using your address.',
+      description: 'Private temporary email service. Token-based secure access only.',
+    },
+    components: {
+      securitySchemes: {
+        api_key: {
+          type: 'apiKey',
+          name: 'X-API-Key',
+          in: 'header',
+        },
+      },
     },
     servers: [
       {

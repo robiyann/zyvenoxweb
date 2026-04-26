@@ -81,43 +81,21 @@
             </a>
         </div>
 
-        <!-- Create Inbox Section -->
+        <!-- Access Inbox Section -->
         <div class="space-y-4">
-            <h2 class="font-label-caps text-[11px] tracking-[0.15em] uppercase text-slate-400 px-1 font-bold">Create Inbox</h2>
-            <div class="p-5 rounded-2xl bg-gradient-to-b from-white/[0.08] to-transparent border border-white/10 shadow-2xl backdrop-blur-xl space-y-5">
-                <!-- Domain Select Custom Dropdown -->
-                <div class="relative" id="domain-dropdown-container">
-                    <button type="button" id="domain-dropdown-btn" class="dd-btn">
-                        <span id="domain-selected-text" style="font-family:'JetBrains Mono',monospace;font-size:12.5px;">Loading...</span>
-                        <span class="material-symbols-outlined dd-chevron" id="domain-chevron">expand_more</span>
-                    </button>
-                    <!-- Options Menu -->
-                    <div id="domain-dropdown-menu" class="dd-menu hidden absolute left-0 top-full mt-1.5 w-full z-50">
-                        <!-- Options injected by JS -->
-                    </div>
+            <h2 class="font-label-caps text-[11px] tracking-[0.15em] uppercase text-slate-400 px-1 font-bold">Access Inbox</h2>
+            <div class="px-1">
+                <div class="flex items-center bg-black/40 border border-white/10 rounded-xl overflow-hidden focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/50 transition-all">
+                    <input type="text" id="token-input" placeholder="Paste access token..." autocomplete="off" class="flex-1 bg-transparent border-none text-slate-200 text-sm px-4 py-3 outline-none focus:ring-0" />
                 </div>
-                <!-- Segmented Control -->
-                <div class="flex p-1 bg-black/40 rounded-xl border border-white/5" id="mode-tabs">
-                    <button data-mode="random" class="flex-1 py-1.5 px-3 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-medium text-sm transition-all text-center">Random</button>
-                    <button data-mode="custom" class="flex-1 py-1.5 px-3 rounded-lg text-slate-400 hover:text-slate-200 font-medium text-sm transition-all text-center">Custom</button>
-                </div>
-                <!-- Custom Input Wrap -->
-                <div id="custom-input-wrap" class="hidden">
-                    <div class="flex items-center bg-black/40 border border-white/10 rounded-xl overflow-hidden focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all">
-                        <input type="text" id="custom-prefix" placeholder="e.g. john.doe" autocomplete="off" autocorrect="off" spellcheck="false" class="flex-1 bg-transparent border-none text-slate-200 text-sm px-4 py-2.5 outline-none focus:ring-0" />
-                        <span id="custom-domain-label" class="text-slate-500 text-sm pr-4 pl-1 py-2.5 pointer-events-none whitespace-nowrap">@domain</span>
-                    </div>
-                </div>
-                <!-- Action Button -->
-                <button id="generate-btn" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-medium text-sm transition-all hover:scale-[1.02] flex justify-center gap-2">
-                    <span class="material-symbols-outlined text-base">auto_awesome</span> Create Address
-                </button>
+                <p class="text-[10px] text-slate-500 mt-2 px-1">Tokens are generated via API. Contact administrator if you need a new inbox.</p>
             </div>
-            
-            <!-- Generated Pill -->
-            <div id="current-address-pill" class="hidden group relative flex items-center justify-between p-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 glow-accent overflow-hidden cursor-pointer" title="Copy to clipboard">
-                <span id="nav-address-display" class="font-mono-pill text-indigo-300 truncate pr-4 relative z-10 w-full text-center text-sm"></span>
-            </div>
+        </div>
+
+        <!-- Generated Pill (visible only when active) -->
+        <div id="current-token-pill" class="hidden group relative flex flex-col items-center justify-between p-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 glow-accent overflow-hidden cursor-pointer mt-4" title="Copy token to clipboard">
+            <span class="text-[10px] uppercase font-bold text-indigo-400/60 mb-1">Active Access Token</span>
+            <span id="nav-token-display" class="font-mono-pill text-indigo-300 truncate relative z-10 w-full text-center text-sm font-bold"></span>
         </div>
         
         <div class="space-y-4">

@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const queries = require('../db/queries');
+const { requireApiKey } = require('../utils/auth');
 
 // Helper to validate and extract domain
 function isValidDomain(domain) {
@@ -12,11 +13,32 @@ function isValidDomain(domain) {
 
 const { generateHumanReadableId } = require('../utils/random');
 
+// Helper to generate a unique token
+function generateToken(domain) {
+  const domainPrefix = domain.split('.')[0].replace(/[^a-z0-9]/g, '').toLowerCase();
+  const randomStr = crypto.randomBytes(4).toString('hex'); // 8 hex chars
+  return `${domainPrefix}_${randomStr}`;
+}
+
+// Helper to save token mapping
+function saveToken(token, address) {
+  const now = new Date();
+  const ttlHours = parseInt(process.env.EMAIL_TTL_HOURS || '24', 10);
+  const expiresAt = new Date(now.getTime() + ttlHours * 60 * 60 * 1000);
+  
+  queries.insertToken.run({
+    token,
+    address,
+    created_at: now.toISOString(),
+    expires_at: expiresAt.toISOString()
+  });
+}
+
 /**
  * @swagger
  * /mailboxes/generate:
  *   post:
- *     summary: Generate a random email address
+ *     summary: Generate a random email address and token
  *     tags: [Mailboxes]
  *     requestBody:
  *       required: true
@@ -29,23 +51,31 @@ const { generateHumanReadableId } = require('../utils/random');
  *                 type: string
  *     responses:
  *       200:
- *         description: The generated email address
+ *         description: The generated email address and access token
  */
-router.post('/generate', (req, res) => {
+router.post('/generate', requireApiKey, (req, res) => {
   const { domain } = req.body;
   if (!domain || !isValidDomain(domain)) {
     return res.status(400).json({ error: 'Invalid or missing domain' });
   }
   const prefix = generateHumanReadableId();
   const address = `${prefix}@${domain}`;
-  res.json({ address });
+  const token = generateToken(domain);
+  
+  try {
+    saveToken(token, address);
+    res.json({ address, token });
+  } catch (err) {
+    console.error('Failed to save token:', err);
+    res.status(500).json({ error: 'Failed to generate mailbox token' });
+  }
 });
 
 /**
  * @swagger
  * /mailboxes/custom:
  *   post:
- *     summary: Register a custom email address
+ *     summary: Register a custom email address and get a token
  *     tags: [Mailboxes]
  *     requestBody:
  *       required: true
@@ -60,9 +90,9 @@ router.post('/generate', (req, res) => {
  *                 type: string
  *     responses:
  *       200:
- *         description: The custom email address
+ *         description: The custom email address and access token
  */
-router.post('/custom', (req, res) => {
+router.post('/custom', requireApiKey, (req, res) => {
   const { domain, prefix } = req.body;
   if (!domain || !isValidDomain(domain)) {
     return res.status(400).json({ error: 'Invalid or missing domain' });
@@ -71,19 +101,63 @@ router.post('/custom', (req, res) => {
     return res.status(400).json({ error: 'Invalid prefix format' });
   }
   const address = `${prefix}@${domain}`;
+  const token = generateToken(domain);
   
-  res.json({ address });
+  try {
+    saveToken(token, address);
+    res.json({ address, token });
+  } catch (err) {
+    console.error('Failed to save token:', err);
+    res.status(500).json({ error: 'Failed to generate mailbox token' });
+  }
+});
+
+// ─── Token Based Endpoints ───────────────────────────────────────────────────
+
+/**
+ * @swagger
+ * /mailboxes/token/{token}:
+ *   get:
+ *     summary: Get emails via token
+ *     description: Retrieve all emails associated with a specific access token.
+ *     tags: [Mailboxes]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The access token (e.g. outlook_randomhex)
+ *     responses:
+ *       200:
+ *         description: List of emails
+ *       404:
+ *         description: Invalid or expired token
+ */
+router.get('/token/:token', (req, res) => {
+  const { token } = req.params;
+  try {
+    const row = queries.getAddressByToken.get({ token, now: new Date().toISOString() });
+    if (!row) return res.status(404).json({ error: 'Invalid or expired token' });
+    
+    const address = row.address;
+    const emails = queries.getEmailsByAddress.all({ address });
+    res.json({ address, token, count: emails.length, emails });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch emails via token' });
+  }
 });
 
 /**
  * @swagger
- * /mailboxes/{address}/otp:
+ * /mailboxes/token/{token}/otp:
  *   get:
- *     summary: Extract OTP/code from the latest email
+ *     summary: Extract OTP/code via token
+ *     description: Automatically extracts numeric codes or OTPs from the latest email using regex.
  *     tags: [Mailboxes]
  *     parameters:
  *       - in: path
- *         name: address
+ *         name: token
  *         required: true
  *         schema:
  *           type: string
@@ -91,111 +165,79 @@ router.post('/custom', (req, res) => {
  *         name: service
  *         schema:
  *           type: string
- *         description: Pre-defined regex service (e.g. 'gopay', 'openai')
+ *         description: Pre-defined service (gopay, openai)
  *       - in: query
  *         name: regex
  *         schema:
  *           type: string
- *         description: Custom regex to extract value (e.g. '\b\d{6}\b')
+ *         description: Custom regex pattern
  *     responses:
  *       200:
- *         description: OTP successfully extracted
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 otp:
- *                   type: string
- *                 from:
- *                   type: string
- *                 date:
- *                   type: string
+ *         description: Extracted OTP
  *       404:
- *         description: Email or OTP not found
+ *         description: Not found
  */
-router.get('/:address/otp', (req, res) => {
-  const { address } = req.params;
+router.get('/token/:token/otp', (req, res) => {
+  const { token } = req.params;
   const { service, regex } = req.query;
 
   try {
+    const row = queries.getAddressByToken.get({ token, now: new Date().toISOString() });
+    if (!row) return res.status(404).json({ error: 'Invalid or expired token' });
+    const address = row.address;
+
     const emails = queries.getEmailsByAddress.all({ address });
     if (!emails || emails.length === 0) {
-      return res.status(404).json({ error: 'No emails found for this address' });
+      return res.status(404).json({ error: 'No emails found' });
     }
 
     const latestMeta = emails[0];
     const email = queries.getEmailByIdAndAddress.get({ id: latestMeta.id, address });
-    if (!email) {
-      return res.status(404).json({ error: 'Email details not found' });
-    }
-
-    const content = (email.body_text || email.body_html || '').toString();
     
-    // Default pattern: 4 to 6 digit numbers bounded by word boundaries
-    let pattern = /\b\d{4,6}\b/;
+    // Prioritaskan body_text, jika kosong coba body_html (strip tags)
+    let content = '';
+    if (email.body_text && email.body_text.trim().length > 0) {
+      content = email.body_text;
+    } else if (email.body_html) {
+      // Strip HTML tags untuk ekstrak teks
+      content = email.body_html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ');
+    }
+    content = content.toString();
 
-    if (regex) {
-      pattern = new RegExp(regex);
-    } else if (service) {
+    console.log(`[OTP] Mencari OTP di email dari ${email.from_addr || 'unknown'}, subject: "${email.subject || ''}", content length: ${content.length}`);
+
+    let pattern = /\b\d{4,6}\b/;
+    if (regex) pattern = new RegExp(regex);
+    else if (service) {
       const s = service.toLowerCase();
       if (s === 'gopay') pattern = /code is (\d{4})/;
-      else if (s === 'openai') pattern = /\b\d{6}\b/;
-      // Add more here if needed
+      else if (s === 'openai') pattern = /\b(\d{6})\b/;
     }
 
     const match = content.match(pattern);
     if (match) {
-      // If regex has a capture group like gopay, match[1] holds the code. Otherwise match[0]
       const otp = match[1] ? match[1] : match[0];
-      return res.json({ 
-        otp, 
-        from: email.from_name || email.from_addr, 
-        date: email.received_at 
-      });
+      console.log(`[OTP] Ditemukan OTP: ${otp}`);
+      return res.json({ otp, from: email.from_name || email.from_addr, date: email.received_at });
     }
-
-    return res.status(404).json({ error: 'OTP not found in the latest email' });
+    console.log(`[OTP] OTP tidak ditemukan dalam konten email (pola: ${pattern})`);
+    return res.status(404).json({ error: 'OTP not found' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to extract OTP' });
+    console.error('[OTP] Error:', error);
+    res.status(500).json({ error: 'Failed' });
   }
 });
 
 /**
  * @swagger
- * /mailboxes/{address}:
+ * /mailboxes/token/{token}/{id}:
  *   get:
- *     summary: Get emails for a specific address
+ *     summary: Get a specific email via token
+ *     description: Retrieve full email content (HTML/Text) for a specific email ID.
  *     tags: [Mailboxes]
  *     parameters:
  *       - in: path
- *         name: address
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of emails
- */
-router.get('/:address', (req, res) => {
-  const { address } = req.params;
-  try {
-    const emails = queries.getEmailsByAddress.all({ address });
-    res.json({ address, count: emails.length, emails });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch emails' });
-  }
-});
-
-/**
- * @swagger
- * /mailboxes/{address}/{id}:
- *   get:
- *     summary: Get a specific email
- *     tags: [Mailboxes]
- *     parameters:
- *       - in: path
- *         name: address
+ *         name: token
  *         required: true
  *         schema:
  *           type: string
@@ -206,86 +248,67 @@ router.get('/:address', (req, res) => {
  *           type: string
  *     responses:
  *       200:
- *         description: The email content
- *       404:
- *         description: Email not found
+ *         description: Email content
  */
-router.get('/:address/:id', (req, res) => {
-  const { address, id } = req.params;
+router.get('/token/:token/:id', (req, res) => {
+  const { token, id } = req.params;
   try {
-    const email = queries.getEmailByIdAndAddress.get({ address, id });
-    if (!email) {
-      return res.status(404).json({ error: 'Email not found' });
-    }
-    // Mark as read
+    const row = queries.getAddressByToken.get({ token, now: new Date().toISOString() });
+    if (!row) return res.status(404).json({ error: 'Invalid token' });
+    
+    const email = queries.getEmailByIdAndAddress.get({ address: row.address, id });
+    if (!email) return res.status(404).json({ error: 'Email not found' });
+    
     if (!email.read) {
-      queries.markEmailAsRead.run({ address, id });
+      queries.markEmailAsRead.run({ address: row.address, id });
       email.read = 1;
     }
     res.json(email);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch email' });
+    res.status(500).json({ error: 'Failed' });
   }
 });
 
 /**
  * @swagger
- * /mailboxes/{address}/{id}:
+ * /mailboxes/token/{token}/{id}:
  *   delete:
- *     summary: Delete a specific email
+ *     summary: Delete a specific email via token
  *     tags: [Mailboxes]
- *     parameters:
- *       - in: path
- *         name: address
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Email deleted
  */
-router.delete('/:address/:id', (req, res) => {
-  const { address, id } = req.params;
+router.delete('/token/:token/:id', (req, res) => {
+  const { token, id } = req.params;
   try {
-    const result = queries.deleteEmail.run({ address, id });
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Email not found' });
-    }
+    const row = queries.getAddressByToken.get({ token, now: new Date().toISOString() });
+    if (!row) return res.status(404).json({ error: 'Invalid token' });
+    
+    const result = queries.deleteEmail.run({ address: row.address, id });
+    if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete email' });
+    res.status(500).json({ error: 'Failed' });
   }
 });
 
 /**
  * @swagger
- * /mailboxes/{address}:
+ * /mailboxes/token/{token}:
  *   delete:
- *     summary: Delete all emails in a mailbox
+ *     summary: Clear inbox via token
  *     tags: [Mailboxes]
- *     parameters:
- *       - in: path
- *         name: address
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Inbox cleared
  */
-router.delete('/:address', (req, res) => {
-  const { address } = req.params;
+router.delete('/token/:token', (req, res) => {
+  const { token } = req.params;
   try {
-    const result = queries.deleteAllEmailsByAddress.run({ address });
+    const row = queries.getAddressByToken.get({ token, now: new Date().toISOString() });
+    if (!row) return res.status(404).json({ error: 'Invalid token' });
+    
+    const result = queries.deleteAllEmailsByAddress.run({ address: row.address });
     res.json({ success: true, deleted: result.changes });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to clear inbox' });
+    res.status(500).json({ error: 'Failed' });
   }
 });
+
 
 module.exports = router;

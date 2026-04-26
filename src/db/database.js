@@ -37,16 +37,22 @@ db.exec(`
     label TEXT,
     active INTEGER DEFAULT 1
   );
+
+  CREATE TABLE IF NOT EXISTS tokens (
+    token TEXT PRIMARY KEY,
+    address TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_tokens_address ON tokens(address);
+  CREATE INDEX IF NOT EXISTS idx_tokens_expires_at ON tokens(expires_at);
 `);
 
-// Seed domains from environment
+// Seed domains from environment (Initial or updates)
 const domainsEnv = process.env.DOMAINS || '';
 const domains = domainsEnv.split(',').map(d => d.trim()).filter(Boolean);
 
 db.transaction(() => {
-  // Mark all existing domains as inactive first
-  db.prepare('UPDATE domains SET active = 0').run();
-  
   const upsertDomain = db.prepare('INSERT INTO domains (domain, active) VALUES (@domain, 1) ON CONFLICT(domain) DO UPDATE SET active = 1');
   for (const dom of domains) {
     upsertDomain.run({ domain: dom });

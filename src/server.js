@@ -18,21 +18,7 @@ app.use(cors());
 // ─── Body parser ──────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 
-// ─── API Key Middleware ────────────────────────────────────────────────────────
-// Protects all /api/* routes EXCEPT /api/inbound (which uses INBOUND_SECRET).
-// The UI (SPA) is NOT API-protected since it's served on the same origin.
-function requireApiKey(req, res, next) {
-  if (!API_KEY) {
-    // If no API_KEY set in .env, warn and allow (dev mode fallback)
-    console.warn('[SECURITY] No API_KEY set in .env! Requests are unprotected.');
-    return next();
-  }
-  const key = req.headers['x-api-key'];
-  if (key !== API_KEY) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid or missing X-API-Key header' });
-  }
-  next();
-}
+const { requireApiKey } = require('./utils/auth');
 
 // ─── Swagger Docs (public, user-facing only) ──────────────────────────────────
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
@@ -74,6 +60,10 @@ setInterval(() => {
     const result = queries.cleanupExpiredEmails.run({ now });
     if (result.changes > 0) {
       console.log(`[Cleanup] Deleted ${result.changes} expired emails.`);
+    }
+    const tokenResult = queries.cleanupExpiredTokens.run({ now });
+    if (tokenResult.changes > 0) {
+      console.log(`[Cleanup] Deleted ${tokenResult.changes} expired tokens.`);
     }
   } catch (err) {
     console.error('[Cleanup] Error deleting expired emails:', err);
