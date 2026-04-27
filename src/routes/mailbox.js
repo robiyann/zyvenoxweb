@@ -349,4 +349,83 @@ router.delete('/token/:token', (req, res) => {
 });
 
 
+// ─── Admin / Recovery Endpoints (Requires API Key) ──────────────────────────
+
+/**
+ * @swagger
+ * /mailboxes/admin/address/{address}:
+ *   get:
+ *     summary: [ADMIN] Get emails by address directly
+ *     description: Recovery endpoint to access inbox without a token. Requires X-API-Key.
+ *     tags: [Mailboxes]
+ *     parameters:
+ *       - in: path
+ *         name: address
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: List of emails
+ */
+router.get('/admin/address/:address', requireApiKey, (req, res) => {
+  const { address } = req.params;
+  try {
+    const emails = queries.getEmailsByAddress.all({ address: address.toLowerCase() });
+    res.json({ address, count: emails.length, emails });
+  } catch (error) {
+    res.status(500).json({ error: 'Admin fetch failed' });
+  }
+});
+
+/**
+ * @swagger
+ * /mailboxes/admin/address/{address}/otp:
+ *   get:
+ *     summary: [ADMIN] Extract OTP by address directly
+ *     tags: [Mailboxes]
+ *     parameters:
+ *       - in: path
+ *         name: address
+ *         required: true
+ */
+router.get('/admin/address/:address/otp', requireApiKey, (req, res) => {
+  const { address } = req.params;
+  const { service, regex } = req.query;
+
+  try {
+    const emails = queries.getEmailsByAddress.all({ address: address.toLowerCase() });
+    if (!emails || emails.length === 0) {
+      return res.status(404).json({ error: 'No emails found for this address' });
+    }
+
+    const latestMeta = emails[0];
+    const email = queries.getEmailByIdAndAddress.get({ id: latestMeta.id, address: address.toLowerCase() });
+    
+    let content = '';
+    if (email.body_text && email.body_text.trim().length > 0) {
+      content = email.body_text;
+    } else if (email.body_html) {
+      content = email.body_html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ');
+    }
+    content = content.toString();
+
+    let pattern = /\b\d{4,6}\b/;
+    if (regex) pattern = new RegExp(regex);
+    else if (service) {
+      const s = service.toLowerCase();
+      if (s === 'gopay') pattern = /code is (\d{4})/;
+      else if (s === 'openai') pattern = /\b(\d{6})\b/;
+    }
+
+    const match = content.match(pattern);
+    if (match) {
+      const otp = match[1] ? match[1] : match[0];
+      return res.json({ otp, from: email.from_name || email.from_addr, date: email.received_at });
+    }
+    return res.status(404).json({ error: 'OTP not found' });
+  } catch (error) {
+    res.status(500).json({ error: 'Admin OTP fetch failed' });
+  }
+});
+
 module.exports = router;
+
