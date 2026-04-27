@@ -355,7 +355,7 @@ router.delete('/token/:token', (req, res) => {
  * @swagger
  * /mailboxes/admin/address/{address}:
  *   get:
- *     summary: [ADMIN] Get emails by address directly
+ *     summary: "[ADMIN] Get emails by address directly"
  *     description: Recovery endpoint to access inbox without a token. Requires X-API-Key.
  *     tags: [Mailboxes]
  *     parameters:
@@ -380,7 +380,7 @@ router.get('/admin/address/:address', requireApiKey, (req, res) => {
  * @swagger
  * /mailboxes/admin/address/{address}/otp:
  *   get:
- *     summary: [ADMIN] Extract OTP by address directly
+ *     summary: "[ADMIN] Extract OTP by address directly"
  *     tags: [Mailboxes]
  *     parameters:
  *       - in: path
