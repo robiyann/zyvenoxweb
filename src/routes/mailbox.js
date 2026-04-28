@@ -36,8 +36,9 @@ function generateToken(domain) {
 // Helper to save token mapping
 function saveToken(token, address) {
   const now = new Date();
-  const ttlHours = parseInt(process.env.EMAIL_TTL_HOURS || '24', 10);
-  const expiresAt = new Date(now.getTime() + ttlHours * 60 * 60 * 1000);
+  // Tokens now never expire. Setting expiration to year 2099 to satisfy schema constraint
+  const expiresAt = new Date('2099-12-31T23:59:59Z');
+
   
   queries.insertToken.run({
     token,

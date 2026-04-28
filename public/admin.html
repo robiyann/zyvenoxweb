@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mail Server Admin Panel</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --surface-color: #1e293b;
+            --text-color: #f8fafc;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --border: #334155;
+            --success: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .card {
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            border: 1px solid var(--border);
+        }
+
+        h1, h2 {
+            margin-top: 0;
+            font-weight: 600;
+        }
+        
+        h1 { font-size: 1.8rem; color: var(--primary); }
+        h2 { font-size: 1.4rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #cbd5e1;
+        }
+
+        input[type="password"], textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #0f172a;
+            border: 1px solid var(--border);
+            color: var(--text-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+        }
+
+        .btn-danger:hover {
+            background-color: var(--danger-hover);
+        }
+
+        .domain-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .domain-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .domain-item:last-child {
+            border-bottom: none;
+        }
+
+        .domain-item:nth-child(even) {
+            background-color: rgba(255,255,255,0.02);
+        }
+
+        .status-msg {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+        }
+        
+        .status-success { background-color: rgba(16, 185, 129, 0.2); color: #34d399; display: block; border: 1px solid rgba(16, 185, 129, 0.3);}
+        .status-error { background-color: rgba(239, 68, 68, 0.2); color: #f87171; display: block; border: 1px solid rgba(239, 68, 68, 0.3);}
+        .help-text { font-size: 0.85rem; color: #94a3b8; margin-top: 0.5rem; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="card">
+            <h1><svg style="width:24px;height:24px;vertical-align:middle;margin-right:8px" viewBox="0 0 24 24"><path fill="currentColor" d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,5A3,3 0 0,1 15,8A3,3 0 0,1 12,11A3,3 0 0,1 9,8A3,3 0 0,1 12,5M17.13,17C15.92,18.85 14.11,20.24 12,20.92C9.89,20.24 8.08,18.85 6.87,17C6.53,16.5 6.24,16 6,15.47C6,13.82 8.71,12.47 12,12.47C15.29,12.47 18,13.82 18,15.47C17.76,16 17.47,16.5 17.13,17Z" /></svg> Mail Server Admin</h1>
+            <div class="form-group">
+                <label for="apiKey">API Key</label>
+                <input type="password" id="apiKey" placeholder="Enter your server API_KEY">
+                <div class="help-text">You must enter your API Key to manage domains.</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Bulk Add Domains</h2>
+            <div class="form-group">
+                <label for="bulkDomains">Paste your domains (one per line or comma-separated)</label>
+                <textarea id="bulkDomains" placeholder="domain1.com&#10;domain2.net&#10;domain3.org"></textarea>
+            </div>
+            <button class="btn-primary" onclick="bulkAddDomains()">Import Domains</button>
+            <div id="bulkStatus" class="status-msg"></div>
+        </div>
+
+        <div class="card">
+            <h2>Active Domains (<span id="domainCount">0</span>)</h2>
+            <div style="display:flex; justify-content:space-between; margin-bottom: 1rem; align-items:center;">
+                <button class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;" onclick="loadDomains()">↻ Refresh List</button>
+            </div>
+            <div id="listStatus" class="status-msg"></div>
+            <ul class="domain-list" id="domainList">
+                <li class="domain-item" style="color: #94a3b8; justify-content: center;">Enter API Key and click Load</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Use relative URL so it works seamlessly
+        const API_BASE = '/api/domains';
+
+        function getHeaders() {
+            const apiKey = document.getElementById('apiKey').value;
+            return {
+                'Content-Type': 'application/json',
+                'X-API-Key': apiKey
+            };
+        }
+
+        function showStatus(elemId, type, msg) {
+            const el = document.getElementById(elemId);
+            el.className = `status-msg status-${type}`;
+            el.textContent = msg;
+            setTimeout(() => { el.className = 'status-msg'; }, 5000);
+        }
+
+        async function loadDomains() {
+            const apiKey = document.getElementById('apiKey').value;
+            if (!apiKey) {
+                showStatus('listStatus', 'error', 'API Key is required to manage domains.');
+                return;
+            }
+
+            try {
+                const res = await fetch(API_BASE);
+                const data = await res.json();
+                
+                if (data.domains) {
+                    const list = document.getElementById('domainList');
+                    list.innerHTML = '';
+                    document.getElementById('domainCount').textContent = data.domains.length;
+
+                    if (data.domains.length === 0) {
+                        list.innerHTML = '<li class="domain-item" style="color: #94a3b8; justify-content: center;">No domains fully active.</li>';
+                        return;
+                    }
+
+                    data.domains.forEach(d => {
+                        const li = document.createElement('li');
+                        li.className = 'domain-item';
+                        li.innerHTML = `
+                            <span>${d}</span>
+                            <button class="btn-danger" onclick="deleteDomain('${d}')">Delete</button>
+                        `;
+                        list.appendChild(li);
+                    });
+                }
+            } catch (err) {
+                showStatus('listStatus', 'error', 'Failed to load domains.');
+            }
+        }
+
+        async function bulkAddDomains() {
+            const input = document.getElementById('bulkDomains').value;
+            if (!input.trim()) return;
+
+            const apiKey = document.getElementById('apiKey').value;
+            if (!apiKey) {
+                showStatus('bulkStatus', 'error', 'API Key is required.');
+                return;
+            }
+
+            // Split by newline, comma, or space
+            const domains = input.split(/[\n, ]+/).map(d => d.trim()).filter(Boolean);
+            
+            if (domains.length === 0) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/bulk`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ domains })
+                });
+                
+                const data = await res.json();
+                if (res.ok) {
+                    showStatus('bulkStatus', 'success', data.message || `Added ${domains.length} domains.`);
+                    document.getElementById('bulkDomains').value = '';
+                    loadDomains(); // reload the list
+                } else {
+                    showStatus('bulkStatus', 'error', data.error || 'Failed to add domains.');
+                }
+            } catch(e) {
+                 showStatus('bulkStatus', 'error', 'Network error occurred.');
+            }
+        }
+
+        async function deleteDomain(domain) {
+            if (!confirm(`Are you sure you want to delete ${domain}?`)) return;
+            
+            try {
+                const res = await fetch(`${API_BASE}/${domain}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showStatus('listStatus', 'success', `Deleted ${domain}`);
+                    loadDomains();
+                } else {
+                    showStatus('listStatus', 'error', data.error || 'Failed to delete domain.');
+                }
+            } catch (err) {
+                showStatus('listStatus', 'error', 'Network error deleting domain.');
+            }
+        }
+
+        // Auto load if API Key is typed
+        document.getElementById('apiKey').addEventListener('blur', () => {
+            if (document.getElementById('apiKey').value) {
+                loadDomains();
+            }
+        });
+    </script>
+</body>
+</html>

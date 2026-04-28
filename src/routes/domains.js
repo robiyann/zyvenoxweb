@@ -49,10 +49,55 @@ router.post('/', requireApiKey, (req, res) => {
   const { domain } = req.body;
   if (!domain) return res.status(400).json({ error: 'Domain is required' });
   try {
-    queries.upsertDomain.run({ domain: domain.toLowerCase() });
+    queries.upsertDomain.run({ domain: domain.toLowerCase().trim() });
     res.json({ success: true, message: `Domain ${domain} added/activated` });
   } catch (error) {
     res.status(500).json({ error: 'Failed to add domain' });
+  }
+});
+
+/**
+ * @swagger
+ * /domains/bulk:
+ *   post:
+ *     summary: Bulk add multiple domains
+ *     tags: [Domains]
+ *     security:
+ *       - api_key: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               domains:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Domains added successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/bulk', requireApiKey, (req, res) => {
+  const { domains } = req.body;
+  if (!Array.isArray(domains) || domains.length === 0) {
+    return res.status(400).json({ error: 'Array of domains is required' });
+  }
+  
+  try {
+    let added = 0;
+    for (const d of domains) {
+      if (typeof d === 'string' && d.trim()) {
+        queries.upsertDomain.run({ domain: d.trim().toLowerCase() });
+        added++;
+      }
+    }
+    res.json({ success: true, message: `Successfully added ${added} domains` });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to add domains in bulk' });
   }
 });
 

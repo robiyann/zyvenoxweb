@@ -61,10 +61,6 @@ setInterval(() => {
     if (result.changes > 0) {
       console.log(`[Cleanup] Deleted ${result.changes} expired emails.`);
     }
-    const tokenResult = queries.cleanupExpiredTokens.run({ now });
-    if (tokenResult.changes > 0) {
-      console.log(`[Cleanup] Deleted ${tokenResult.changes} expired tokens.`);
-    }
   } catch (err) {
     console.error('[Cleanup] Error deleting expired emails:', err);
   }

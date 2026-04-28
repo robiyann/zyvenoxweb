@@ -56,13 +56,11 @@ const queries = {
   `),
 
   getAddressByToken: db.prepare(`
-    SELECT address FROM tokens WHERE token = @token AND expires_at > @now
+    SELECT address FROM tokens WHERE token = @token
   `),
 
-  cleanupExpiredTokens: db.prepare(`
-    DELETE FROM tokens 
-    WHERE expires_at <= @now
-  `)
+  // Token deletion is no longer automated to keep tokens permanent.
+  // cleanupExpiredTokens: ...
 };
 
 module.exports = queries;
